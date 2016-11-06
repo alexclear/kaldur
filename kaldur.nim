@@ -1,4 +1,4 @@
-import jester, asyncdispatch, htmlgen, os
+import jester, asyncdispatch, htmlgen, os, osproc
 
 var
   thr: Thread[void]
@@ -6,7 +6,10 @@ var
 proc collectOnCPUMetrics() {.thread.} =
   while true:
     write(stderr, "On-CPU...\n")
-    sleep(60000)
+    let errCode = execCmd("perf record -F 99 -o perf.data -a -g -- sleep 60")
+    write(stderr, "Error code: " & $errCode & "\n")
+    if errCode != 0:
+      quit(QuitFailure)
 
 routes:
   get "/":
