@@ -1,12 +1,13 @@
-import jester, asyncdispatch, htmlgen, os, osproc
+import jester, asyncdispatch, htmlgen, os, osproc, times
 
 var
   thr: Thread[void]
 
 proc collectOnCPUMetrics() {.thread.} =
   while true:
-    write(stderr, "On-CPU...\n")
-    let errCode = execCmd("perf record -F 99 -o perf.data -a -g -- sleep 60")
+    let currentTime = toInt(epochTime())
+    write(stderr, "On-CPU... " & $currentTime & "\n")
+    let errCode = execCmd("perf record -F 99 -o /var/lib/kaldur/perf" & $currentTime & ".data -a -g -- sleep 60")
     write(stderr, "Error code: " & $errCode & "\n")
     if errCode != 0:
       quit(QuitFailure)
