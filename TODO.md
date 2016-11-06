@@ -8,3 +8,4 @@
 * Create an ugly web interface
 * Create a differ
 * Create a polished web UI
+* Convert a TODO list to a set of issues on Github
