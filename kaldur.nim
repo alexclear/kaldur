@@ -3,12 +3,12 @@ import jester, asyncdispatch, htmlgen, os, osproc, times
 var
   collectorThread: Thread[void]
   folderThread: Thread[void]
-  chanToFolder: Channel[int]
+  chanToFolders: Channel[int]
 
 proc foldStacks() {.thread.} =
   write(stderr, "Folder...\n")
   while true:
-    let timestamp = recv(chanToFolder)
+    let timestamp = recv(chanToFolders)
     write(stderr, "Folder... " & $timestamp & "\n")
     let errCode = execCmd("perf script -i /var/lib/kaldur/perf" & $timestamp & ".data | /root/FlameGraph/stackcollapse-perf.pl > /var/lib/kaldur/out" & $timestamp & ".perf-folded")
     write(stderr, "Folder finished, error code: " & $errCode & "\n")
@@ -25,15 +25,15 @@ proc collectOnCPUMetrics() {.thread.} =
     write(stderr, "Error code: " & $errCode & "\n")
     if errCode != 0:
       quit(QuitFailure)
-    write(stderr, "Sending an identifier to the channel..." & $chanToFolder & " " & $currentTime & "\n")
-    send(chanToFolder, currentTime)
+    write(stderr, "Sending an identifier to the channel..." & $chanToFolders & " " & $currentTime & "\n")
+    send(chanToFolders, currentTime)
     write(stderr, "Message sent!\n")
 
 routes:
   get "/":
     resp h1("Hello world")
 
-open(chanToFolder) 
+open(chanToFolders) 
 createThread(collectorThread, collectOnCPUMetrics)
 createThread(folderThread, foldStacks)
 runForever()
