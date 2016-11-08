@@ -1,4 +1,4 @@
-import jester, asyncdispatch, htmlgen, os, osproc, times, strutils
+import jester, asyncdispatch, htmlgen, os, osproc, times, strutils, algorithm
 
 var
   collectorThread: Thread[void]
@@ -48,9 +48,14 @@ proc svgCreator() {.thread.} =
 
 routes:
   get "/":
+    var paths: seq[string]
+    paths = @[]
     for path in walkDirRec("/var/lib/kaldur", {pcFile}):
       if path.endsWith(".svg"):
-        write(stderr, path & "\n")
+        paths.add(path)
+    sort(paths, system.cmp)
+    for path in paths:
+      write(stderr, path & "\n")
     resp h1("Hello world")
 
 open(chanToFolders)
