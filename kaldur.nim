@@ -50,6 +50,7 @@ routes:
   get "/":
     var paths: seq[string]
     var files = ""
+    request.setStaticDir("/var/lib/kaldur")
     paths = @[]
     for path in walkDirRec("/var/lib/kaldur", {pcFile}):
       if path.endsWith(".svg"):
