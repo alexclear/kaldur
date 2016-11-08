@@ -49,14 +49,16 @@ proc svgCreator() {.thread.} =
 routes:
   get "/":
     var paths: seq[string]
+    var files = ""
     paths = @[]
     for path in walkDirRec("/var/lib/kaldur", {pcFile}):
       if path.endsWith(".svg"):
-        paths.add(path)
+        paths.add(rsplit(path, "/", 1)[1])
     sort(paths, system.cmp)
     for path in paths:
       write(stderr, path & "\n")
-    resp h1("Hello world")
+      files = files & a(href="/" & path, path) & "<BR/>"
+    resp h1("Hello world") & "<BR/>" & files
 
 open(chanToFolders)
 open(chanToSVGCreators)
