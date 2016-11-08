@@ -4,6 +4,7 @@ var
   thr: Thread[void]
 
 proc foldStacks(timestamp: int) {.thread.} =
+  write(stderr, "Folder...\n")
   write(stderr, "Folder... " & $timestamp & "\n")
   let errCode = execCmd("perf script -i /var/lib/kaldur/perf" & $timestamp & ".data | /root/FlameGraph/stackcollapse-perf.pl > /var/lib/kaldur/out" & $timestamp & ".perf-folded")
   write(stderr, "Folder finished, error code: " & $errCode & "\n")
@@ -13,6 +14,7 @@ proc foldStacks(timestamp: int) {.thread.} =
 proc collectOnCPUMetrics() {.thread.} =
   while true:
     var thr1: Thread[int]
+    write(stderr, "Collecting on-CPU flamegraphs...\n")
     let currentTime = toInt(epochTime())
     write(stderr, "On-CPU... " & $currentTime & "\n")
     let errCode = execCmd("perf record -F 99 -o /var/lib/kaldur/perf" & $currentTime & ".data -a -g -- sleep 60")
