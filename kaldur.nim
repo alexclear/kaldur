@@ -14,6 +14,7 @@ proc foldStacks() {.thread.} =
     write(stderr, "Folder finished, error code: " & $errCode & "\n")
     if errCode != 0:
       quit(QuitFailure)
+    removeFile("/var/lib/kaldur/perf" & $timestamp & ".data")
 
 proc collectOnCPUMetrics() {.thread.} =
   while true:
