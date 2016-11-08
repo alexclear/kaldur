@@ -1,8 +1,8 @@
 import jester, asyncdispatch, htmlgen, os, osproc, times
 
 var
-  thr: Thread[void]
-  thr1: Thread[void]
+  collectorThread: Thread[void]
+  folderThread: Thread[void]
   chanToFolder: Channel[int]
 
 proc foldStacks() {.thread.} =
@@ -34,6 +34,6 @@ routes:
     resp h1("Hello world")
 
 open(chanToFolder) 
-createThread(thr, collectOnCPUMetrics)
-createThread(thr1, foldStacks)
+createThread(collectorThread, collectOnCPUMetrics)
+createThread(folderThread, foldStacks)
 runForever()
