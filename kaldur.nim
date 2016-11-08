@@ -19,7 +19,9 @@ proc collectOnCPUMetrics() {.thread.} =
     write(stderr, "Error code: " & $errCode & "\n")
     if errCode != 0:
       quit(QuitFailure)
+    write(stderr, "Creating a new thread\n")
     createThread(thr1, foldStacks, currentTime)
+    write(stderr, "New thread created!\n")
 
 routes:
   get "/":
