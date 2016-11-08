@@ -34,6 +34,7 @@ routes:
   get "/":
     resp h1("Hello world")
 
+open(chan) 
 createThread(thr, collectOnCPUMetrics, chan)
 createThread(thr1, foldStacks, chan)
 runForever()
