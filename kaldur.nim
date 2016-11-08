@@ -26,7 +26,7 @@ proc collectOnCPUMetrics(chan: Channel[int]) {.thread.} =
     write(stderr, "Error code: " & $errCode & "\n")
     if errCode != 0:
       quit(QuitFailure)
-    write(stderr, "Sending an identifier to the channel..." & $currentTime & "\n")
+    write(stderr, "Sending an identifier to the channel..." & $channel & " " & $currentTime & "\n")
     send(channel, currentTime)
     write(stderr, "Message sent!\n")
 
