@@ -3,7 +3,9 @@ import jester, asyncdispatch, htmlgen, os, osproc, times
 var
   collectorThread: Thread[void]
   folderThread: Thread[void]
+  svgCreatorThread: Thread[void]
   chanToFolders: Channel[int]
+  chanToSVGCreators: Channel[int]
 
 proc foldStacks() {.thread.} =
   write(stderr, "Folder...\n")
@@ -15,6 +17,7 @@ proc foldStacks() {.thread.} =
     if errCode != 0:
       quit(QuitFailure)
     removeFile("/var/lib/kaldur/perf" & $timestamp & ".data")
+    send(chanToSVGCreators, timestamp)
 
 proc collectOnCPUMetrics() {.thread.} =
   while true:
@@ -29,11 +32,22 @@ proc collectOnCPUMetrics() {.thread.} =
     send(chanToFolders, currentTime)
     write(stderr, "Message sent!\n")
 
+proc svgCreator() {.thread.} =
+  while true:
+    let timestamp = recv(chanToSVGCreators)
+    write(stderr, "SVG Creator... " & $timestamp & "\n")
+    let errCode = execCmd("/root/FlameGraph/flamegraph.pl /var/lib/kaldur/out" & $timestamp & ".perf-folded > /var/lib/kaldur/perf" & $timestamp & ".svg")
+    write(stderr, "SVG Creator finished, error code: " & $errCode & "\n")
+    if errCode != 0:
+      quit(QuitFailure)
+
 routes:
   get "/":
     resp h1("Hello world")
 
 open(chanToFolders) 
+open(chanToSVGCreators) 
 createThread(collectorThread, collectOnCPUMetrics)
 createThread(folderThread, foldStacks)
+createThread(svgCreatorThread, svgCreator)
 runForever()
