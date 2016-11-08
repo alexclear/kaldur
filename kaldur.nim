@@ -17,7 +17,7 @@ proc foldStacks(chan: Channel[int]) {.thread.} =
       quit(QuitFailure)
 
 proc collectOnCPUMetrics(chan: Channel[int]) {.thread.} =
-  var chan1 = chan
+  var channel = chan
   while true:
     write(stderr, "Collecting on-CPU flamegraphs...\n")
     let currentTime = toInt(epochTime())
@@ -26,8 +26,8 @@ proc collectOnCPUMetrics(chan: Channel[int]) {.thread.} =
     write(stderr, "Error code: " & $errCode & "\n")
     if errCode != 0:
       quit(QuitFailure)
-    write(stderr, "Sending an identifier to the channel\n")
-    send(chan1, currentTime)
+    write(stderr, "Sending an identifier to the channel..." & $currentTime & "\n")
+    send(channel, currentTime)
     write(stderr, "Message sent!\n")
 
 routes:
