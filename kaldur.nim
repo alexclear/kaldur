@@ -1,23 +1,21 @@
 import jester, asyncdispatch, htmlgen, os, osproc, times
 
 var
-  thr: Thread[Channel[int]]
-  thr1: Thread[Channel[int]]
+  thr: Thread[void]
+  thr1: Thread[void]
   chan: Channel[int]
 
-proc foldStacks(chan: Channel[int]) {.thread.} =
-  var chan1 = chan
+proc foldStacks() {.thread.} =
   write(stderr, "Folder...\n")
   while true:
-    let timestamp = recv(chan1)
+    let timestamp = recv(chan)
     write(stderr, "Folder... " & $timestamp & "\n")
     let errCode = execCmd("perf script -i /var/lib/kaldur/perf" & $timestamp & ".data | /root/FlameGraph/stackcollapse-perf.pl > /var/lib/kaldur/out" & $timestamp & ".perf-folded")
     write(stderr, "Folder finished, error code: " & $errCode & "\n")
     if errCode != 0:
       quit(QuitFailure)
 
-proc collectOnCPUMetrics(chan: Channel[int]) {.thread.} =
-  var channel = chan
+proc collectOnCPUMetrics() {.thread.} =
   while true:
     write(stderr, "Collecting on-CPU flamegraphs...\n")
     let currentTime = toInt(epochTime())
@@ -26,8 +24,8 @@ proc collectOnCPUMetrics(chan: Channel[int]) {.thread.} =
     write(stderr, "Error code: " & $errCode & "\n")
     if errCode != 0:
       quit(QuitFailure)
-    write(stderr, "Sending an identifier to the channel..." & $channel & " " & $currentTime & "\n")
-    send(channel, currentTime)
+    write(stderr, "Sending an identifier to the channel..." & $chan & " " & $currentTime & "\n")
+    send(chan, currentTime)
     write(stderr, "Message sent!\n")
 
 routes:
@@ -35,6 +33,6 @@ routes:
     resp h1("Hello world")
 
 open(chan) 
-createThread(thr, collectOnCPUMetrics, chan)
-createThread(thr1, foldStacks, chan)
+createThread(thr, collectOnCPUMetrics)
+createThread(thr1, foldStacks)
 runForever()
