@@ -54,4 +54,8 @@ open(chanToSVGCreators)
 createThread(collectorThread, collectOnCPUMetrics)
 createThread(folderThread, foldStacks)
 createThread(svgCreatorThread, svgCreator)
-runForever()
+while true:
+  try:
+    runForever()
+  except:
+    echo "Exception: " & getCurrentExceptionMsg()
