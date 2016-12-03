@@ -1,4 +1,4 @@
-import jester, asyncdispatch, htmlgen, os, osproc, times, strutils, algorithm
+import jester, asyncdispatch, htmlgen, os, osproc, times, strutils, algorithm, parsecfg, streams
 
 var
   collectorThread: Thread[void]
@@ -6,6 +6,7 @@ var
   svgCreatorThread: Thread[void]
   chanToFolders: Channel[int]
   chanToSVGCreators: Channel[int]
+  confStaticDir : string
 
 proc foldStacks() {.thread.} =
   while true:
@@ -35,20 +36,30 @@ proc svgCreator() {.thread.} =
     if errCode != 0:
       quit(QuitFailure)
 
-routes:
-  get "/":
-    var paths: seq[string]
-    var files = ""
-    request.setStaticDir("/var/lib/kaldur")
-    paths = @[]
-    for path in walkDirRec("/var/lib/kaldur", {pcFile}):
-      if path.endsWith(".svg"):
-        paths.add(rsplit(path, "/", 1)[1])
-    sort(paths, system.cmp, order = SortOrder.Descending)
-    for path in paths:
-      files = files & a(href="/" & path, path) & "<BR/>"
-    resp h1("You can find your flamegraphs below") & "<BR/>" & files
+var config = loadConfig("kaldur.ini")
+confStaticDir = config.getSectionValue("Global","staticdir")
+if confStaticDir == "":
+  echo("Global/staticdir is not found!")
+  quit(QuitFailure)
+else:
+  echo("staticdir is: " & confStaticDir)
 
+proc configRoutes(staticDir: string) =
+  routes:
+    get "/":
+      var paths: seq[string]
+      var files = ""
+      request.setStaticDir(staticDir)
+      paths = @[]
+      for path in walkDirRec(staticDir, {pcFile}):
+        if path.endsWith(".svg"):
+          paths.add(rsplit(path, "/", 1)[1])
+      sort(paths, system.cmp, order = SortOrder.Descending)
+      for path in paths:
+        files = files & a(href="/" & path, path) & "<BR/>"
+      resp h1("You can find your flamegraphs below") & "<BR/>" & files
+
+configRoutes(confStaticDir)
 open(chanToFolders)
 open(chanToSVGCreators)
 createThread(collectorThread, collectOnCPUMetrics)
