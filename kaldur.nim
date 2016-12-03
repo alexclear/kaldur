@@ -1,38 +1,38 @@
 import jester, asyncdispatch, htmlgen, os, osproc, times, strutils, algorithm, parsecfg, streams
 
 var
-  collectorThread: Thread[void]
-  folderThread: Thread[void]
-  svgCreatorThread: Thread[void]
+  collectorThread: Thread[string]
+  folderThread: Thread[string]
+  svgCreatorThread: Thread[string]
   chanToFolders: Channel[int]
   chanToSVGCreators: Channel[int]
   confStaticDir : string
 
-proc foldStacks() {.thread.} =
+proc foldStacks(staticDir: string) {.thread.} =
   while true:
     let timestamp = recv(chanToFolders)
-    let errCode = execCmd("perf script -i /var/lib/kaldur/perf" & $timestamp &
-      ".data | /root/FlameGraph/stackcollapse-perf.pl > /var/lib/kaldur/out" &
+    let errCode = execCmd("perf script -i " & staticDir & "/perf" & $timestamp &
+      ".data | /root/FlameGraph/stackcollapse-perf.pl > " & staticDir & "/out" &
       $timestamp & ".perf-folded")
     if errCode != 0:
       quit(QuitFailure)
-    removeFile("/var/lib/kaldur/perf" & $timestamp & ".data")
+    removeFile( staticDir & "/perf" & $timestamp & ".data")
     send(chanToSVGCreators, timestamp)
 
-proc collectOnCPUMetrics() {.thread.} =
+proc collectOnCPUMetrics(staticDir: string) {.thread.} =
   while true:
     let currentTime = toInt(epochTime())
-    let errCode = execCmd("perf record -F 99 -o /var/lib/kaldur/perf" &
+    let errCode = execCmd("perf record -F 99 -o " & staticDir & "/perf" &
       $currentTime & ".data -a -g -- sleep 60")
     if errCode != 0:
       quit(QuitFailure)
     send(chanToFolders, currentTime)
 
-proc svgCreator() {.thread.} =
+proc svgCreator(staticDir: string) {.thread.} =
   while true:
     let timestamp = recv(chanToSVGCreators)
-    let errCode = execCmd("/root/FlameGraph/flamegraph.pl /var/lib/kaldur/out" &
-      $timestamp & ".perf-folded > /var/lib/kaldur/perf" & $timestamp & ".svg")
+    let errCode = execCmd("/root/FlameGraph/flamegraph.pl " & staticDir & "/out" &
+      $timestamp & ".perf-folded > " & staticDir & "/perf" & $timestamp & ".svg")
     if errCode != 0:
       quit(QuitFailure)
 
@@ -62,9 +62,9 @@ proc configRoutes(staticDir: string) =
 configRoutes(confStaticDir)
 open(chanToFolders)
 open(chanToSVGCreators)
-createThread(collectorThread, collectOnCPUMetrics)
-createThread(folderThread, foldStacks)
-createThread(svgCreatorThread, svgCreator)
+createThread(collectorThread, collectOnCPUMetrics, confStaticDir)
+createThread(folderThread, foldStacks, confStaticDir)
+createThread(svgCreatorThread, svgCreator, confStaticDir)
 while true:
   try:
     runForever()
