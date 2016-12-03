@@ -56,7 +56,9 @@ proc configRoutes(staticDir: string) =
           paths.add(rsplit(path, "/", 1)[1])
       sort(paths, system.cmp, order = SortOrder.Descending)
       for path in paths:
-        files = files & a(href="/" & path, path) & " [" & split(rsplit(path, ".", 1)[0], "perf", 1)[1] & "]<BR/>"
+        let epochstr = split(rsplit(path, ".", 1)[0], "perf", 1)[1];
+        let time = getLocalTime(fromSeconds(parseInt(epochstr)))
+        files = files & a(href="/" & path, path) & " [" & format(time, "ddd MMM dd HH:mm:ss ZZZ yyyy") & "]<BR/>"
       resp h1("You can find your flamegraphs below") & "<BR/>" & files
 
 configRoutes(confStaticDir)
