@@ -56,7 +56,7 @@ proc configRoutes(staticDir: string) =
           paths.add(rsplit(path, "/", 1)[1])
       sort(paths, system.cmp, order = SortOrder.Descending)
       for path in paths:
-        files = files & a(href="/" & path, path) & " [" & split(rsplit(path, ".", 1)[0], "perf", 1)[0] & "]<BR/>"
+        files = files & a(href="/" & path, path) & " [" & split(rsplit(path, ".", 1)[0], "perf", 1)[1] & "]<BR/>"
       resp h1("You can find your flamegraphs below") & "<BR/>" & files
 
 configRoutes(confStaticDir)
