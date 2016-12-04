@@ -37,6 +37,7 @@ proc svgCreator(staticDir: string) {.thread.} =
       $timestamp & ".perf-folded > " & staticDir & "/" & format(time, "yyyyMMdd") & "/perf" & $timestamp & ".svg")
     if errCode != 0:
       quit(QuitFailure)
+    removeFile( staticDir & "/out" & $timestamp & ".perf-folded")
 
 var config = loadConfig("kaldur.ini")
 confStaticDir = config.getSectionValue("Global","staticdir")
