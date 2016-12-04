@@ -31,8 +31,10 @@ proc collectOnCPUMetrics(staticDir: string) {.thread.} =
 proc svgCreator(staticDir: string) {.thread.} =
   while true:
     let timestamp = recv(chanToSVGCreators)
+    let time = getLocalTime(fromSeconds(timestamp))
+    createDir(staticDir & "/" & format(time, "yyyyMMdd"))
     let errCode = execCmd("/root/FlameGraph/flamegraph.pl " & staticDir & "/out" &
-      $timestamp & ".perf-folded > " & staticDir & "/perf" & $timestamp & ".svg")
+      $timestamp & ".perf-folded > " & staticDir & "/" & format(time, "yyyyMMdd") & "/perf" & $timestamp & ".svg")
     if errCode != 0:
       quit(QuitFailure)
 
