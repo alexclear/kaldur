@@ -58,7 +58,7 @@ proc configRoutes(staticDir: string) =
       for path in paths:
         let epochstr = split(rsplit(path, ".", 1)[0], "perf", 1)[1];
         let time = getLocalTime(fromSeconds(parseInt(epochstr)))
-        files = files & a(href="/" & path, path) & " [" & format(time, "ddd MMM dd HH:mm:ss ZZZ yyyy") & "]<BR/>"
+        files = files & a(href="/" & path, path) & " [" & format(time, "ddd MMM dd HH:mm:ss ZZZ yyyy") & "]<BR/>\n"
       resp h1("You can find your flamegraphs below") & "<BR/>" & files
 
 configRoutes(confStaticDir)
