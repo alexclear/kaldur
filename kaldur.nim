@@ -47,18 +47,23 @@ else:
 proc configRoutes(staticDir: string) =
   routes:
     get "/":
+      let start = epochTime()
       var paths: seq[string]
       var files = ""
       request.setStaticDir(staticDir)
+      echo("After request.setStaticDir()... " & $(epochTime() - start))
       paths = @[]
       for path in walkDirRec(staticDir, {pcFile}):
         if path.endsWith(".svg"):
           paths.add(rsplit(path, "/", 1)[1])
+      echo("After walkDirRec... " & $(epochTime() - start))
       sort(paths, system.cmp, order = SortOrder.Descending)
+      echo("After sort... " & $(epochTime() - start))
       for path in paths:
         let epochstr = split(rsplit(path, ".", 1)[0], "perf", 1)[1];
         let time = getLocalTime(fromSeconds(parseInt(epochstr)))
         files = files & a(href="/" & path, path) & " [" & format(time, "ddd MMM dd HH:mm:ss ZZZ yyyy") & "]<BR/>\n"
+      echo("After processing paths array... " & $(epochTime() - start))
       resp h1("You can find your flamegraphs below") & "<BR/>" & files
 
 configRoutes(confStaticDir)
