@@ -55,7 +55,10 @@ proc configRoutes(staticDir: string) =
       request.setStaticDir(staticDir)
       echo("After request.setStaticDir()... " & $(epochTime() - start))
       paths = @[]
-      for path in walkDirRec(staticDir, {pcFile}):
+      let currentTime = getLocalTime(getTime())
+      let currentDir = staticDir & "/" & format(currentTime, "yyyyMMdd")
+      createDir(currentDir)
+      for path in walkDirRec(currentDir, {pcFile}):
         if path.endsWith(".svg"):
           paths.add(rsplit(path, "/", 1)[1])
       echo("After walkDirRec... " & $(epochTime() - start))
@@ -67,7 +70,7 @@ proc configRoutes(staticDir: string) =
         delete(buffer, 0, 3)
         let epochstr = rsplit(buffer, ".", 1)[0];
         let time = getLocalTime(fromSeconds(parseInt(epochstr)))
-        files = files & a(href="/" & path, path) & " [" & format(time, "ddd MMM dd HH:mm:ss ZZZ yyyy") & "]<BR/>\n"
+        files = files & a(href="/" & format(currentTime, "yyyyMMdd") & "/" & path, path) & " [" & format(time, "ddd MMM dd HH:mm:ss ZZZ yyyy") & "]<BR/>\n"
       echo("After processing paths array... " & $(epochTime() - start))
       resp h1("You can find your flamegraphs below") & "<BR/>" & files
 
