@@ -59,8 +59,11 @@ proc configRoutes(staticDir: string) =
       echo("After walkDirRec... " & $(epochTime() - start))
       sort(paths, system.cmp, order = SortOrder.Descending)
       echo("After sort... " & $(epochTime() - start))
+      var buffer: string
       for path in paths:
-        let epochstr = split(rsplit(path, ".", 1)[0], "perf", 1)[1];
+        buffer = path
+        delete(buffer, 0, 3)
+        let epochstr = rsplit(buffer, ".", 1)[0];
         let time = getLocalTime(fromSeconds(parseInt(epochstr)))
         files = files & a(href="/" & path, path) & " [" & format(time, "ddd MMM dd HH:mm:ss ZZZ yyyy") & "]<BR/>\n"
       echo("After processing paths array... " & $(epochTime() - start))
