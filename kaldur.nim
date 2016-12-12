@@ -51,6 +51,7 @@ proc configRoutes(staticDir: string) =
   var localCounter = newCounter("http_reqs_counter", "Number of HTTP requests")
   routes:
     get "/metrics":
+      localCounter.increment()
       resp exportAllMetrics(), "text/plain; charset=utf-8"
     get "/":
       let start = epochTime()
