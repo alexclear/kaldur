@@ -57,7 +57,8 @@ if confStaticDir == "":
 else:
   echo("staticdir is: " & confStaticDir)
 
-proc configRoutes(staticDir: string, prom: Prometheus) =
+proc configRoutes(staticDir: string) =
+  let prom = newPrometheus()
   var localCounter = prom.newCounter("kaldur_http_reqs_counter", "Number of HTTP requests.")
   var latencyHistogram = prom.newHistogram("kaldur_http_reqs_latency", "Latency of HTTP requests in millis.", bucketMargins)
   var folderLatencyHistogram = prom.newHistogram("kaldur_foldstacks_execcmd_time", "Time of execCmd in foldStacks.", bucketMargins)
@@ -89,8 +90,7 @@ proc configRoutes(staticDir: string, prom: Prometheus) =
       latencyHistogram.observe((epochTime() - start)*1000)
       resp h1("You can find your flamegraphs below") & "<BR/>" & files
 
-let prom = newPrometheus()
-configRoutes(confStaticDir, prom)
+configRoutes(confStaticDir)
 open(chanToFolders)
 open(chanToSVGCreators)
 open(folderLatencyHistogramChan)
