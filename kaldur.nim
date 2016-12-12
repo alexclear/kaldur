@@ -11,9 +11,14 @@ var
   collectorThread: Thread[string]
   folderThread: Thread[ThreadContext]
   svgCreatorThread: Thread[string]
+  statsThread: Thread[void]
   chanToFolders: Channel[int]
   chanToSVGCreators: Channel[int]
+  httpReqsChan: Channel[int]
+  statRequestChan: Channel[int]
   folderLatencyHistogramChan: Channel[float]
+  httpLatencyHistogramChan: Channel[float]
+  promChan: Channel[Prometheus]
   confStaticDir : string
 
 proc foldStacks(context: ThreadContext) {.thread.} =
@@ -49,6 +54,27 @@ proc svgCreator(staticDir: string) {.thread.} =
       quit(QuitFailure)
     removeFile( staticDir & "/out" & $timestamp & ".perf-folded")
 
+proc statsProc() {.thread.} =
+  let prom = newPrometheus()
+  var localCounter = prom.newCounter("kaldur_http_reqs_counter", "Number of HTTP requests.")
+  var latencyHistogram = prom.newHistogram("kaldur_http_reqs_latency", "Latency of HTTP requests in millis.", bucketMargins)
+  var folderLatencyHistogram = prom.newHistogram("kaldur_foldstacks_execcmd_time", "Time of execCmd in foldStacks.", bucketMargins)
+  var result: bool
+  var latency: float
+  while true:
+    let (result1, _) = tryRecv(httpReqsChan)
+    if result1:
+      localCounter.increment()
+    (result, latency) = tryRecv(httpLatencyHistogramChan)
+    if result:
+      latencyHistogram.observe(latency)
+    (result, latency) = tryRecv(folderLatencyHistogramChan)
+    if result:
+      folderLatencyHistogram.observe(latency)
+    let (result2, _) = tryRecv(statRequestChan)
+    if result2:
+      send(promChan, prom)
+
 var config = loadConfig("kaldur.ini")
 confStaticDir = config.getSectionValue("Global","staticdir")
 if confStaticDir == "":
@@ -58,19 +84,17 @@ else:
   echo("staticdir is: " & confStaticDir)
 
 proc configRoutes(staticDir: string) =
-  let prom = newPrometheus()
-  var localCounter = prom.newCounter("kaldur_http_reqs_counter", "Number of HTTP requests.")
-  var latencyHistogram = prom.newHistogram("kaldur_http_reqs_latency", "Latency of HTTP requests in millis.", bucketMargins)
-  var folderLatencyHistogram = prom.newHistogram("kaldur_foldstacks_execcmd_time", "Time of execCmd in foldStacks.", bucketMargins)
   routes:
     get "/metrics":
-      localCounter.increment()
+      send(httpReqsChan, 1)
+      send(statRequestChan, 1)
+      let prom = recv(promChan)
       resp prom.exportAllMetrics(), "text/plain; charset=utf-8"
     get "/":
       let start = epochTime()
       var paths: seq[string]
       var files = ""
-      localCounter.increment()
+      send(httpReqsChan, 1)
       request.setStaticDir(staticDir)
       paths = @[]
       let currentTime = getLocalTime(getTime())
@@ -87,13 +111,18 @@ proc configRoutes(staticDir: string) =
         let epochstr = rsplit(buffer, ".", 1)[0];
         let time = getLocalTime(fromSeconds(parseInt(epochstr)))
         files = files & a(href="/" & format(currentTime, "yyyyMMdd") & "/" & path, path) & " [" & format(time, "ddd MMM dd HH:mm:ss ZZZ yyyy") & "]<BR/>\n"
-      latencyHistogram.observe((epochTime() - start)*1000)
+      send(httpLatencyHistogramChan, (epochTime() - start)*1000)
       resp h1("You can find your flamegraphs below") & "<BR/>" & files
 
 configRoutes(confStaticDir)
 open(chanToFolders)
 open(chanToSVGCreators)
 open(folderLatencyHistogramChan)
+open(httpLatencyHistogramChan)
+open(httpReqsChan)
+open(statRequestChan)
+open(promChan)
+createThread(statsThread, statsProc)
 createThread(collectorThread, collectOnCPUMetrics, confStaticDir)
 createThread(folderThread, foldStacks, ThreadContext(staticDir: confStaticDir))
 createThread(svgCreatorThread, svgCreator, confStaticDir)
