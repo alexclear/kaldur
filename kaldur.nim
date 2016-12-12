@@ -1,4 +1,4 @@
-import jester, asyncdispatch, htmlgen, os, osproc, times, strutils, algorithm, parsecfg, streams
+import prometheus, jester, asyncdispatch, htmlgen, os, osproc, times, strutils, algorithm, parsecfg, streams
 
 var
   collectorThread: Thread[string]
@@ -48,11 +48,16 @@ else:
   echo("staticdir is: " & confStaticDir)
 
 proc configRoutes(staticDir: string) =
+  var localCounter = newCounter("http_reqs_counter", "Number of HTTP requests")
   routes:
+    get "/metrics":
+      echo "Metrics will be here\n"
+      echo "Test\n"
     get "/":
       let start = epochTime()
       var paths: seq[string]
       var files = ""
+      localCounter.increment()
       request.setStaticDir(staticDir)
       echo("After request.setStaticDir()... " & $(epochTime() - start))
       paths = @[]
