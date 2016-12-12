@@ -1,22 +1,30 @@
 import prometheus, jester, asyncdispatch, htmlgen, os, osproc, times, strutils, algorithm, parsecfg, streams, logging
 
+type
+  ThreadContext = ref object of RootObj
+    staticDir: string
+    prom: Prometheus
+
 var
   collectorThread: Thread[string]
-  folderThread: Thread[string]
+  folderThread: Thread[ThreadContext]
   svgCreatorThread: Thread[string]
   chanToFolders: Channel[int]
   chanToSVGCreators: Channel[int]
   confStaticDir : string
 
-proc foldStacks(staticDir: string) {.thread.} =
+proc foldStacks(context: ThreadContext) {.thread.} =
+  var folderLatencyHistogram = context.prom.newHistogram("kaldur_foldstacks_execcmd_time", "Time of execCmd in foldStacks.", [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0, 170.0, 180.0, 190.0, 200.0, 210.0, 220.0, 230.0, 240.0, 250.0, 260.0, 270.0, 280.0, 290.0, 300.0, 310.0, 320.0, 330.0, 340.0, 350.0, 360.0, 370.0, 380.0, 390.0, 400.0, 410.0, 420.0, 430.0, 440.0, 450.0, 460.0, 470.0, 480.0, 490.0, 500.0, 510.0, 520.0, 530.0, 540.0, 550.0, 560.0, 570.0, 580.0, 590.0, 600.0, 610.0, 620.0, 630.0, 640.0, 650.0, 660.0, 670.0, 680.0, 690.0, 700.0, 710.0, 720.0, 730.0, 740.0, 750.0, 760.0, 770.0, 780.0, 790.0, 800.0, 810.0, 820.0, 830.0, 840.0, 850.0, 860.0, 870.0, 880.0, 890.0, 900.0, 910.0, 920.0, 930.0, 940.0, 950.0, 960.0, 970.0, 980.0, 990.0, 1000.0, 1100.0, 1200.0, 1300.0, 1400.0, 1500.0, 1600.0, 1700.0, 1800.0, 1900.0, 2000.0, 2250.0, 2500.0, 2750.0, 3000.0, 4000.0, 5000.0, 6000.0, 7000.0, 8000.0, 9000.0, 10000.0, 12000.0, 14000.0, 16000.0, 18000.0, 20000.0, 25000.0, 30000.0, 35000.0, 40000.0, 50000.0, 60000.0, 70000.0, 90000.0, 120000.0, 180000.0, 240000.0])
   while true:
     let timestamp = recv(chanToFolders)
-    let errCode = execCmd("perf script -i " & staticDir & "/perf" & $timestamp &
-      ".data | /root/FlameGraph/stackcollapse-perf.pl > " & staticDir & "/out" &
+    let start = epochTime()
+    let errCode = execCmd("perf script -i " & context.staticDir & "/perf" & $timestamp &
+      ".data | /root/FlameGraph/stackcollapse-perf.pl > " & context.staticDir & "/out" &
       $timestamp & ".perf-folded")
+    folderLatencyHistogram.observe((epochTime() - start)*1000)
     if errCode != 0:
       quit(QuitFailure)
-    removeFile( staticDir & "/perf" & $timestamp & ".data")
+    removeFile( context.staticDir & "/perf" & $timestamp & ".data")
     send(chanToSVGCreators, timestamp)
 
 proc collectOnCPUMetrics(staticDir: string) {.thread.} =
@@ -47,8 +55,7 @@ if confStaticDir == "":
 else:
   echo("staticdir is: " & confStaticDir)
 
-proc configRoutes(staticDir: string) =
-  let prom = newPrometheus()
+proc configRoutes(staticDir: string, prom: Prometheus) =
   var localCounter = prom.newCounter("kaldur_http_reqs_counter", "Number of HTTP requests.")
   var latencyHistogram = prom.newHistogram("kaldur_http_reqs_latency", "Latency of HTTP requests in millis.", [10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0, 170.0, 180.0, 190.0, 200.0, 210.0, 220.0, 230.0, 240.0, 250.0, 260.0, 270.0, 280.0, 290.0, 300.0, 310.0, 320.0, 330.0, 340.0, 350.0, 360.0, 370.0, 380.0, 390.0, 400.0, 410.0, 420.0, 430.0, 440.0, 450.0, 460.0, 470.0, 480.0, 490.0, 500.0, 510.0, 520.0, 530.0, 540.0, 550.0, 560.0, 570.0, 580.0, 590.0, 600.0, 610.0, 620.0, 630.0, 640.0, 650.0, 660.0, 670.0, 680.0, 690.0, 700.0, 710.0, 720.0, 730.0, 740.0, 750.0, 760.0, 770.0, 780.0, 790.0, 800.0, 810.0, 820.0, 830.0, 840.0, 850.0, 860.0, 870.0, 880.0, 890.0, 900.0, 910.0, 920.0, 930.0, 940.0, 950.0, 960.0, 970.0, 980.0, 990.0, 1000.0, 1100.0, 1200.0, 1300.0, 1400.0, 1500.0, 1600.0, 1700.0, 1800.0, 1900.0, 2000.0, 2250.0, 2500.0, 2750.0, 3000.0, 4000.0, 5000.0, 6000.0, 7000.0, 8000.0, 9000.0, 10000.0, 12000.0, 14000.0, 16000.0, 18000.0, 20000.0, 25000.0, 30000.0, 35000.0, 40000.0, 50000.0, 60000.0, 70000.0, 90000.0, 120000.0, 180000.0, 240000.0])
   routes:
@@ -79,11 +86,12 @@ proc configRoutes(staticDir: string) =
       latencyHistogram.observe((epochTime() - start)*1000)
       resp h1("You can find your flamegraphs below") & "<BR/>" & files
 
-configRoutes(confStaticDir)
+let prom = newPrometheus()
+configRoutes(confStaticDir, prom)
 open(chanToFolders)
 open(chanToSVGCreators)
 createThread(collectorThread, collectOnCPUMetrics, confStaticDir)
-createThread(folderThread, foldStacks, confStaticDir)
+createThread(folderThread, foldStacks, ThreadContext(staticDir: confStaticDir, prom: prom))
 createThread(svgCreatorThread, svgCreator, confStaticDir)
 setLogFilter(lvlInfo)
 while true:
