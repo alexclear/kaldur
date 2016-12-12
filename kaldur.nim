@@ -74,6 +74,7 @@ proc statsProc() {.thread.} =
     let (result2, _) = tryRecv(statRequestChan)
     if result2:
       send(promChan, prom)
+    sleep(20)
 
 var config = loadConfig("kaldur.ini")
 confStaticDir = config.getSectionValue("Global","staticdir")
