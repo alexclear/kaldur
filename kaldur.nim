@@ -1,4 +1,4 @@
-import prometheus, jester, asyncdispatch, htmlgen, os, osproc, times, strutils, algorithm, parsecfg, streams
+import prometheus, jester, asyncdispatch, htmlgen, os, osproc, times, strutils, algorithm, parsecfg, streams, logging
 
 var
   collectorThread: Thread[string]
@@ -85,6 +85,7 @@ open(chanToSVGCreators)
 createThread(collectorThread, collectOnCPUMetrics, confStaticDir)
 createThread(folderThread, foldStacks, confStaticDir)
 createThread(svgCreatorThread, svgCreator, confStaticDir)
+setLogFilter(lvlInfo)
 while true:
   try:
     runForever()
