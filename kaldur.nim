@@ -51,7 +51,7 @@ proc configRoutes(staticDir: string) =
   var localCounter = newCounter("http_reqs_counter", "Number of HTTP requests")
   routes:
     get "/metrics":
-      resp "Metrics will be here\n" & "Test\n"
+      resp "Metrics will be here\n" & "Test\n", "text/plain; charset=utf-8"
     get "/":
       let start = epochTime()
       var paths: seq[string]
