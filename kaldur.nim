@@ -61,7 +61,6 @@ proc configRoutes(staticDir: string) =
       var files = ""
       localCounter.increment()
       request.setStaticDir(staticDir)
-      echo("After request.setStaticDir()... " & $(epochTime() - start))
       paths = @[]
       let currentTime = getLocalTime(getTime())
       let currentDir = staticDir & "/" & format(currentTime, "yyyyMMdd")
@@ -69,9 +68,7 @@ proc configRoutes(staticDir: string) =
       for path in walkDirRec(currentDir, {pcFile}):
         if path.endsWith(".svg"):
           paths.add(rsplit(path, "/", 1)[1])
-      echo("After walkDirRec... " & $(epochTime() - start))
       sort(paths, system.cmp, order = SortOrder.Descending)
-      echo("After sort... " & $(epochTime() - start))
       var buffer: string
       for path in paths:
         buffer = path
@@ -79,7 +76,6 @@ proc configRoutes(staticDir: string) =
         let epochstr = rsplit(buffer, ".", 1)[0];
         let time = getLocalTime(fromSeconds(parseInt(epochstr)))
         files = files & a(href="/" & format(currentTime, "yyyyMMdd") & "/" & path, path) & " [" & format(time, "ddd MMM dd HH:mm:ss ZZZ yyyy") & "]<BR/>\n"
-      echo("After processing paths array... " & $(epochTime() - start))
       latencyHistogram.observe((epochTime() - start)*1000)
       resp h1("You can find your flamegraphs below") & "<BR/>" & files
 
