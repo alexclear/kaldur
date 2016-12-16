@@ -19,7 +19,8 @@ var
   folderLatencyHistogramChan: Channel[float]
   httpLatencyHistogramChan: Channel[float]
   promChan: Channel[Prometheus]
-  confStaticDir : string
+  confStaticDir: string
+  confPort: int
 
 proc foldStacks(context: ThreadContext) {.thread.} =
   while true:
@@ -83,8 +84,16 @@ if confStaticDir == "":
   quit(QuitFailure)
 else:
   echo("staticdir is: " & confStaticDir)
+let confPortStr = config.getSectionValue("Global","port")
+if confPortStr == "":
+  confPort = 5000
+else:
+  confPort = parseInt(confPortStr)
 
-proc configRoutes(staticDir: string) =
+proc configRoutes(staticDir: string, port: int) =
+  settings:
+    port = (Port) port
+    staticDir = staticDir
   routes:
     get "/metrics":
       send(httpReqsChan, 1)
@@ -115,7 +124,7 @@ proc configRoutes(staticDir: string) =
       send(httpLatencyHistogramChan, (epochTime() - start)*1000)
       resp h1("You can find your flamegraphs below") & "<BR/>" & files
 
-configRoutes(confStaticDir)
+configRoutes(confStaticDir, confPort)
 open(chanToFolders)
 open(chanToSVGCreators)
 open(folderLatencyHistogramChan)
