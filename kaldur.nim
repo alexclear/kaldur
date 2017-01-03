@@ -27,7 +27,7 @@ proc foldStacks(context: ThreadContext) {.thread.} =
     let timestamp = recv(chanToFolders)
     let start = epochTime()
     let errCode = execCmd("perf script -i " & context.staticDir & "/perf" & $timestamp &
-      ".data | /root/FlameGraph/stackcollapse-perf.pl > " & context.staticDir & "/out" &
+      ".data | /opt/FlameGraph/stackcollapse-perf.pl > " & context.staticDir & "/out" &
       $timestamp & ".perf-folded")
     send(folderLatencyHistogramChan, (epochTime() - start)*1000)
     if errCode != 0:
@@ -49,7 +49,7 @@ proc svgCreator(staticDir: string) {.thread.} =
     let timestamp = recv(chanToSVGCreators)
     let time = getLocalTime(fromSeconds(timestamp))
     createDir(staticDir & "/" & format(time, "yyyyMMdd"))
-    let errCode = execCmd("/root/FlameGraph/flamegraph.pl " & staticDir & "/out" &
+    let errCode = execCmd("/opt/FlameGraph/flamegraph.pl " & staticDir & "/out" &
       $timestamp & ".perf-folded > " & staticDir & "/" & format(time, "yyyyMMdd") & "/perf" & $timestamp & ".svg")
     if errCode != 0:
       quit(QuitFailure)
@@ -96,6 +96,10 @@ if not existsDir(confStaticDir):
 
 if not existsFile("/usr/bin/perf"):
   echo("Please install perf!")
+  quit(QuitFailure)
+
+if not existsDir("/opt/FlameGraph"):
+  echo("Please clone https://github.com/brendangregg/FlameGraph.git to /opt/FlameGraph!")
   quit(QuitFailure)
 
 proc configRoutes(staticDir: string, port: int) =
