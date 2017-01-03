@@ -94,6 +94,10 @@ if not existsDir(confStaticDir):
   echo("Please create " & confStaticDir & " directory!")
   quit(QuitFailure)
 
+if not existsFile("/usr/bin/perf"):
+  echo("Please install perf!")
+  quit(QuitFailure)
+
 proc configRoutes(staticDir: string, port: int) =
   settings:
     port = (Port) port
