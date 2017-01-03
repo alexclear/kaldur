@@ -90,6 +90,10 @@ if confPortStr == "":
 else:
   confPort = parseInt(confPortStr)
 
+if not existsDir(confStaticDir):
+  echo("Please create " & confStaticDir & " directory!")
+  quit(QuitFailure)
+
 proc configRoutes(staticDir: string, port: int) =
   settings:
     port = (Port) port
