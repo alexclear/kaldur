@@ -38,7 +38,7 @@ proc foldStacks(context: ThreadContext) {.thread.} =
 proc collectOnCPUMetrics(staticDir: string) {.thread.} =
   while true:
     let currentTime = toInt(epochTime())
-    let errCode = execCmd("perf record -F 99 -o " & staticDir & "/perf" &
+    let errCode = execCmd("sudo perf record -F 99 -o " & staticDir & "/perf" &
       $currentTime & ".data -a -g -- sleep 60")
     if errCode != 0:
       quit(QuitFailure)
