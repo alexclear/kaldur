@@ -38,9 +38,13 @@ proc foldStacks(context: ThreadContext) {.thread.} =
 proc collectOnCPUMetrics(staticDir: string) {.thread.} =
   while true:
     let currentTime = toInt(epochTime())
-    let errCode = execCmd("sudo perf record -F 99 -o " & staticDir & "/perf" &
+    let errCodePerf = execCmd("sudo perf record -F 99 -o " & staticDir & "/perf" &
       $currentTime & ".data -a -g -- sleep 60")
-    if errCode != 0:
+    if errCodePerf != 0:
+      quit(QuitFailure)
+    let errCodeChown = execCmd("sudo chown kaldur:kaldur " & staticDir & "/perf" &
+      $currentTime & ".data")
+    if errCodeChown != 0:
       quit(QuitFailure)
     send(chanToFolders, currentTime)
 
