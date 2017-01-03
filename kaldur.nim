@@ -132,7 +132,7 @@ proc configRoutes(staticDir: string, port: int) =
         delete(buffer, 0, 3)
         let epochstr = rsplit(buffer, ".", 1)[0];
         let time = getLocalTime(fromSeconds(parseInt(epochstr)))
-        files = files & a(href="/" & format(currentTime, "yyyyMMdd") & "/" & path, path) & " [" & format(time, "ddd MMM dd HH:mm:ss ZZZ yyyy") & "]<BR/>\n"
+        files = files & a(href="/" & format(currentTime, "yyyyMMdd") & "/" & path, path) & " [" & format(time, "ddd MMM dd HH:mm:ss 'GMT'zz yyyy") & "]<BR/>\n"
       send(httpLatencyHistogramChan, (epochTime() - start)*1000)
       resp h1("You can find your flamegraphs below") & "<BR/>" & files
 
